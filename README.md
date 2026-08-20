@@ -46,6 +46,10 @@ On first use, the plugin downloads Mermaid and KaTeX from a CDN and caches them 
 
 Each feature (Markdown extras, Mermaid, LaTeX, image previews) can be toggled independently from the plugin's settings panel, which also shows the load status of Mermaid/KaTeX and lets you clear the cache and force a re-download.
 
+## Acknowledgements
+
+- [discord-markdown-renderer](https://gist.github.com/xxxxDev/d7452492a2183116736735b6cf417926) — a console-pasteable script covering the same Discord Markdown gaps (tables, `---`, headings, etc.); this plugin builds on that idea with Mermaid, LaTeX, and packaging as a proper BetterDiscord plugin.
+
 ## License
 
 [Apache License 2.0](./LICENSE)
