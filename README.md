@@ -1,6 +1,6 @@
-# MarkdownMermaid
+# DRE
 
-A [BetterDiscord](https://betterdiscord.app/) plugin that adds Mermaid diagrams, LaTeX math, image link previews, and extra Markdown (headings, GFM tables, `<details>` blocks, horizontal rules) that Discord doesn't natively support.
+**D**iscord **R**endering **E**nhanced — a [BetterDiscord](https://betterdiscord.app/) plugin that adds Mermaid diagrams, LaTeX math, image link previews, and extra Markdown (headings, GFM tables, `<details>` blocks, horizontal rules) that Discord doesn't natively support.
 
 It was originally built to make working with the **zeroclaw** bot nicer to read — diagrams, tables, and structured Markdown that the bot posts now render properly instead of showing up as raw text.
 
@@ -35,6 +35,8 @@ Mermaid Gantt chart and git graph:
 ![Gantt chart and git graph](.screenshots/Screenshot%202026-08-20%20092018.png)
 
 ## Installation
+
+> The project is named **DRE**, but the plugin file itself is still `MarkdownMermaid.plugin.js` — that's the file to download and the name BetterDiscord will show in its Plugins list.
 
 1. Download [`MarkdownMermaid.plugin.js`](./MarkdownMermaid.plugin.js).
 2. Place it in your BetterDiscord `plugins` folder (`%APPDATA%\BetterDiscord\plugins` on Windows).
