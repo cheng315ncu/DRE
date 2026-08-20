@@ -36,9 +36,9 @@ Mermaid Gantt chart and git graph:
 
 ## Installation
 
-> The project is named **DRE**, but the plugin file itself is still `MarkdownMermaid.plugin.js` — that's the file to download and the name BetterDiscord will show in its Plugins list.
+> The plugin file is `DC_Render_Enhanced.plugin.js`. Its internal identity (the `@name`/`CONFIG.name` BetterDiscord uses for the Plugins-list label and for saved settings) is unchanged — it'll still show up as **MarkdownMermaid** there, and existing saved settings/cache carry over. If you're updating an existing install, remove the old `MarkdownMermaid.plugin.js` file and re-enable the plugin under its new filename.
 
-1. Download [`MarkdownMermaid.plugin.js`](./MarkdownMermaid.plugin.js).
+1. Download [`DC_Render_Enhanced.plugin.js`](./DC_Render_Enhanced.plugin.js).
 2. Place it in your BetterDiscord `plugins` folder (`%APPDATA%\BetterDiscord\plugins` on Windows).
 3. Enable **MarkdownMermaid** in BetterDiscord's Plugins settings.
 
