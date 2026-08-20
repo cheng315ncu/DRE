@@ -14,25 +14,47 @@ It was originally built to make working with the **zeroclaw** bot nicer to read 
 
 ## Screenshots
 
+### Mermaid diagrams
+
+Sequence diagram, rendered live in a zeroclaw dev channel:
+
+![Sequence diagram](.screenshots/Screenshot%202026-08-20%20091958.png)
+
+Class diagram:
+
+![Class diagram](.screenshots/Screenshot%202026-08-20%20092005.png)
+
+State diagram:
+
+![State diagram](.screenshots/Screenshot%202026-08-20%20092010.png)
+
+Gantt chart and git graph:
+
+![Gantt chart and git graph](.screenshots/Screenshot%202026-08-20%20092018.png)
+
+### Markdown extras
+
 GFM tables and syntax-highlighted code blocks:
 
 ![Tables and code blocks](.screenshots/Screenshot%202026-08-20%20091946.png)
 
-Mermaid sequence diagram, rendered live in a zeroclaw dev channel:
+### LaTeX math
 
-![Sequence diagram](.screenshots/Screenshot%202026-08-20%20091958.png)
+Inline and display math, tested live against the zeroclaw bot:
 
-Mermaid class diagram:
+![LaTeX inline and display test](.screenshots/Screenshot%202026-08-20%20131236.png)
 
-![Class diagram](.screenshots/Screenshot%202026-08-20%20092005.png)
+The Schrödinger equation, conditional probability, and mean/variance formulas:
 
-Mermaid state diagram:
+![Schrödinger equation and statistics formulas](.screenshots/Screenshot%202026-08-20%20131215.png)
 
-![State diagram](.screenshots/Screenshot%202026-08-20%20092010.png)
+LaTeX tables and chemical formulas:
 
-Mermaid Gantt chart and git graph:
+![LaTeX tables and chemical formulas](.screenshots/Screenshot%202026-08-20%20131201.png)
 
-![Gantt chart and git graph](.screenshots/Screenshot%202026-08-20%20092018.png)
+Greek letters and special symbols:
+
+![Greek letters and special symbols](.screenshots/Screenshot%202026-08-20%20131155.png)
 
 ## Installation
 
