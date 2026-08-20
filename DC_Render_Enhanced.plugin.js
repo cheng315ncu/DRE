@@ -111,6 +111,10 @@ const STYLE = `
 // A "markup__" substring fallback is included too, since that's proven (via manual
 // testing against this exact client) to match Discord's message content element even
 // when the other two techniques don't.
+//
+// The specific webpack keys and selector fallbacks below are adapted from discord-latex
+// by BinaryQuantumSoul (https://github.com/BinaryQuantumSoul/discord-latex), used here
+// under its Apache License 2.0 -- see README Acknowledgements.
 const CLASS_MESSAGE_LIST_ITEM = (BdApi.Webpack.getByKeys("messageListItem") || {}).messageListItem;
 const CLASS_MESSAGE_CONTENT = (BdApi.Webpack.getByKeys("threadMessageAccessoryContentLeadingIcon") || {}).messageContent;
 
