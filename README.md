@@ -8,7 +8,7 @@ It was originally built to make working with the **zeroclaw** bot nicer to read 
 
 - **Mermaid diagrams** — flowcharts, sequence diagrams, class diagrams, state diagrams, Gantt charts, git graphs, and more, rendered straight from ` ```mermaid ` code blocks.
 - **Markdown extras** — `#` headings, GFM `| a | b |` tables, `---` horizontal rules, and `<details>`/`<summary>` collapsible sections.
-- **LaTeX math** — raw `\(...\)`, `\[...\]`, `$...$`, and `$$...$$` math rendered with KaTeX.
+- **LaTeX math** — raw `\(...\)`, `\[...\]`, `$...$`, and `$$...$$` math rendered with KaTeX. Backtick-wrapped math (e.g. `` `$x^2$` ``) is left alone — that's handled by the separate [LaTeX Renderer](https://github.com/BinaryQuantumSoul/discord-latex) plugin.
 - **Image link previews** — `![alt](url)` renders as an inline image instead of a plain link.
 - **Offline-capable** — Mermaid/KaTeX are downloaded once and cached locally, so the plugin keeps working without a network connection after the first load.
 
@@ -49,6 +49,7 @@ Each feature (Markdown extras, Mermaid, LaTeX, image previews) can be toggled in
 ## Acknowledgements
 
 - [discord-markdown-renderer](https://gist.github.com/xxxxDev/d7452492a2183116736735b6cf417926) — a console-pasteable script covering the same Discord Markdown gaps (tables, `---`, headings, etc.); this plugin builds on that idea with Mermaid, LaTeX, and packaging as a proper BetterDiscord plugin.
+- [discord-latex](https://github.com/BinaryQuantumSoul/discord-latex) by [BinaryQuantumSoul](https://github.com/BinaryQuantumSoul) — a MathJax-based LaTeX renderer for Discord. This plugin's own KaTeX-based math support is scoped to raw (non-backtick-wrapped) LaTeX specifically so it can coexist with discord-latex instead of double-rendering the same math.
 
 ## License
 
