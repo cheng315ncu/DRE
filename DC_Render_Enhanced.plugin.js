@@ -141,6 +141,27 @@ function getMessageFromContentEl(el) {
     return null;
 }
 
+// message.content is empty for embed-based bot messages (the text lives in
+// message.embeds[].description/fields instead), which silently disabled LaTeX detection
+// for any bot -- like zeroclaw -- that replies via embed rather than plain content. Mermaid
+// sidesteps this with a DOM-sniffing fallback (see findMermaidBlocks below); LaTeX can't
+// do the same since Discord's DOM has already eaten the "\(" "\[" backslash by the time we
+// see it, so instead we widen the raw-text search to include embed text too.
+function getLatexSearchText(message) {
+    if (!message) return null;
+    const parts = [];
+    if (message.content) parts.push(message.content);
+    for (const embed of message.embeds || []) {
+        if (embed.title) parts.push(embed.title);
+        if (embed.description) parts.push(embed.description);
+        for (const field of embed.fields || []) {
+            if (field.name) parts.push(field.name);
+            if (field.value) parts.push(field.value);
+        }
+    }
+    return parts.length ? parts.join("\n") : null;
+}
+
 // ---------- flattened-text DOM mapping (recursive, block-tag-aware) ----------
 // Ported from a manually-verified content script: walks the FULL subtree (not just
 // direct children), inserting a newline at block-tag boundaries, so headings/tables
@@ -1027,7 +1048,7 @@ module.exports = class MarkdownMermaid {
 
         if (wantsLatex) {
             const message = getMessageFromContentEl(el);
-            const raw = message ? message.content : null;
+            const raw = getLatexSearchText(message);
             if (raw && (raw.includes("$") || raw.includes("\\[") || raw.includes("\\("))) {
                 locateLatexInDomText(text, findLatex(raw)).forEach(x => {
                     candidates.push({ start: x.start, end: x.end, priority: 1, kind: "latex", data: x });
