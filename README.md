@@ -74,7 +74,7 @@ Each feature (Markdown extras, Mermaid, LaTeX, image previews) can be toggled in
 
 ## Acknowledgements
 
-- [discord-markdown-renderer](https://gist.github.com/xxxxDev/d7452492a2183116736735b6cf417926) — a console-pasteable script covering the same Discord Markdown gaps (tables, `---`, headings, etc.); this plugin builds on that idea with Mermaid, LaTeX, and packaging as a proper BetterDiscord plugin.
+- [discord-markdown-renderer](https://gist.github.com/xxxxDev/d7452492a2183116736735b6cf417926) — a console-pasteable script tackling the same Discord Markdown gaps (tables, `---`, headings, etc.). Early versions of this plugin's Markdown-extras detection were prototyped against that idea; the current implementation (DOM-text-flattening, table/heading/rule detection, hide-and-render) is an independent implementation, packaged as a proper BetterDiscord plugin alongside Mermaid, LaTeX, and image-preview support the gist doesn't attempt.
 - [discord-latex](https://github.com/BinaryQuantumSoul/discord-latex) by [BinaryQuantumSoul](https://github.com/BinaryQuantumSoul), licensed under Apache License 2.0 — a MathJax-based LaTeX renderer for Discord. This plugin's own KaTeX-based math support is scoped to raw (non-backtick-wrapped) LaTeX specifically so it can coexist with discord-latex instead of double-rendering the same math. The Discord message-content webpack class-resolution helper (`CLASS_MESSAGE_LIST_ITEM`/`CLASS_MESSAGE_CONTENT`/selector fallbacks) in `DC_Render_Enhanced.plugin.js` is adapted directly from its source, used here under the same license.
 
 ## License

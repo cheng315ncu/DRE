@@ -166,15 +166,22 @@ function getLatexSearchText(message) {
     return parts.length ? parts.join("\n") : null;
 }
 
-// ---------- flattened-text DOM mapping (recursive, block-tag-aware) ----------
-// Ported from a manually-verified content script: walks the FULL subtree (not just
-// direct children), inserting a newline at block-tag boundaries, so headings/tables
-// are found correctly regardless of how deep Discord nests each line.
+// ---------- flattened-text DOM mapping (iterative, block-tag-aware) ----------
+// Walks the FULL subtree (not just direct children), inserting a newline at
+// block-tag boundaries, so headings/tables are found correctly regardless of how
+// deep Discord nests each line.
 
 const BLOCK_TAGS = new Set([
     "DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6",
     "OL", "UL", "LI", "HR", "BLOCKQUOTE", "TABLE",
 ]);
+
+// Explicit stack instead of recursion: a block tag needs its trailing newline fired
+// only once every descendant beneath it has already been processed, which recursion
+// gets for free (call after the child loop) but an iterative walk needs an explicit
+// "I'm done with this subtree" marker for -- BLOCK_CLOSE is that marker, pushed right
+// after its node so it's only popped once the whole subtree above it is drained.
+const BLOCK_CLOSE = Symbol("blockClose");
 
 function buildVisibleTextMap(root) {
     let text = "";
@@ -184,14 +191,23 @@ function buildVisibleTextMap(root) {
         if (text.length > 0 && !text.endsWith("\n")) text += "\n";
     };
 
-    function walk(node) {
+    const stack = [root];
+    while (stack.length) {
+        const item = stack.pop();
+
+        if (item && item.marker === BLOCK_CLOSE) {
+            maybeNewline();
+            continue;
+        }
+
+        const node = item;
         if (node.nodeType === Node.TEXT_NODE) {
             const len = node.nodeValue.length;
             nodeMap.push({ node, start: text.length, end: text.length + len });
             text += node.nodeValue;
-            return;
+            continue;
         }
-        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
 
         // Skip our own output. richmd-mermaid-wrapper matters just as much as the other
         // two: once a diagram renders, its SVG carries a text node for every label in the
@@ -201,19 +217,19 @@ function buildVisibleTextMap(root) {
             node.classList.contains("richmd-hidden") ||
             node.classList.contains("richmd-rendered") ||
             node.classList.contains("richmd-mermaid-wrapper")
-        )) return;
+        )) continue;
 
         const tag = node.tagName;
         if (tag === "BR") {
             text += "\n";
-            return;
+            continue;
         }
         // Emoji render as <img alt="😀">; without this their cells/lines read as empty.
         if (tag === "IMG" && node.alt) {
             const alt = node.alt;
             nodeMap.push({ node, start: text.length, end: text.length + alt.length, isElement: true });
             text += alt;
-            return;
+            continue;
         }
         // Don't let code contents (which may themselves contain "#"/"|"/"$" as literal
         // example text, or backtick-wrapped LaTeX meant for the other LaTeX plugin) feed
@@ -225,30 +241,43 @@ function buildVisibleTextMap(root) {
         if (tag === "PRE" || tag === "CODE") {
             nodeMap.push({ opaque: true, start: text.length, end: text.length });
             if (tag === "PRE") maybeNewline();
-            return;
+            continue;
         }
 
         const isBlock = BLOCK_TAGS.has(tag);
-        if (isBlock) maybeNewline();
-        for (const child of Array.from(node.childNodes)) walk(child);
-        if (isBlock) maybeNewline();
+        if (isBlock) {
+            maybeNewline();
+            stack.push({ marker: BLOCK_CLOSE });
+        }
+        const children = node.childNodes;
+        for (let i = children.length - 1; i >= 0; i--) stack.push(children[i]);
     }
 
-    walk(root);
     return { text, nodeMap };
+}
+
+// nodeMap entries are appended in non-decreasing start/end order as buildVisibleTextMap
+// walks the tree, so both match boundaries can be found by binary-searching each entry's
+// `end` offset instead of scanning the array from the front. Returns nodeMap.length when
+// no entry satisfies the predicate.
+function lowerBoundEntry(nodeMap, predicate) {
+    let lo = 0, hi = nodeMap.length;
+    while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (predicate(nodeMap[mid])) hi = mid;
+        else lo = mid + 1;
+    }
+    return lo;
 }
 
 function hideRange(nodeMap, charStart, charEnd) {
     if (!nodeMap.length) return null;
-    let startIdx = -1;
-    let endIdx = -1;
-    for (let i = 0; i < nodeMap.length; i++) {
-        const e = nodeMap[i];
-        if (startIdx === -1 && charStart < e.end) startIdx = i;
-        if (charEnd <= e.end) { endIdx = i; break; }
-    }
-    if (endIdx === -1) endIdx = nodeMap.length - 1;
-    if (startIdx === -1) return null;
+
+    const startIdx = lowerBoundEntry(nodeMap, e => charStart < e.end);
+    if (startIdx >= nodeMap.length) return null;
+
+    let endIdx = lowerBoundEntry(nodeMap, e => charEnd <= e.end);
+    if (endIdx >= nodeMap.length) endIdx = nodeMap.length - 1;
 
     for (let i = startIdx; i <= endIdx; i++) {
         if (nodeMap[i].opaque) return null;
@@ -289,17 +318,16 @@ function escHtml(s) {
 }
 
 // ---------- heading detection ----------
+// The multiline flag lets ^/$ do the line-boundary work directly (they're zero-width and
+// don't consume the newline), so match.index already lands exactly on the line's start --
+// no manual offset correction needed for the case where a match isn't on the first line.
 
-const HEADING_RE = /(?:^|\n)([ \t]*)(#{1,6})[ \t]+([^\n]+?)[ \t]*(?=\n|$)/g;
+const HEADING_RE = /^([ \t]*)(#{1,6})[ \t]+([^\n]+?)[ \t]*$/gm;
 
 function findHeadings(text) {
     const found = [];
-    let m;
-    HEADING_RE.lastIndex = 0;
-    while ((m = HEADING_RE.exec(text)) !== null) {
-        const lineOffset = m.index === 0 && text[0] !== "\n" ? 0 : 1;
-        const start = m.index + lineOffset;
-        found.push({ start, end: start + m[0].length - lineOffset, level: m[2].length, content: m[3] });
+    for (const m of text.matchAll(HEADING_RE)) {
+        found.push({ start: m.index, end: m.index + m[0].length, level: m[2].length, content: m[3] });
     }
     return found;
 }
@@ -308,17 +336,20 @@ function findHeadings(text) {
 // Discord has no "---" rule syntax, so the line survives into the rendered DOM as literal
 // text exactly like "#" and "|" do. Requires the whole line to be 3+ of one marker
 // character (spaces allowed between them, as CommonMark permits), which is what keeps it
-// clear of Discord's "-# subtext" and of a table's "|---|---|" delimiter row.
-const HR_RE = /(?:^|\n)([ \t]*(?:-[ \t]*){3,}|[ \t]*(?:\*[ \t]*){3,}|[ \t]*(?:_[ \t]*){3,})(?=\n|$)/g;
+// clear of Discord's "-# subtext" and of a table's "|---|---|" delimiter row. Scanned line
+// by line (reusing the lines/lineStart bookkeeping findTables() also uses below) with a
+// backreference so only one marker character may appear in a given rule line.
+const HR_LINE_RE = /^[ \t]*([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
 
 function findRules(text) {
     const found = [];
-    let m;
-    HR_RE.lastIndex = 0;
-    while ((m = HR_RE.exec(text)) !== null) {
-        const lineOffset = m.index === 0 && text[0] !== "\n" ? 0 : 1;
-        const start = m.index + lineOffset;
-        found.push({ start, end: start + m[0].length - lineOffset });
+    const lines = text.split("\n");
+    const lineStart = [0];
+    for (let i = 0; i < lines.length; i++) lineStart.push(lineStart[i] + lines[i].length + 1);
+    for (let i = 0; i < lines.length; i++) {
+        if (HR_LINE_RE.test(lines[i])) {
+            found.push({ start: lineStart[i], end: lineStart[i] + lines[i].length });
+        }
     }
     return found;
 }
@@ -333,44 +364,60 @@ function parseRow(line) {
     return trimmed.split("|").map(c => c.trim());
 }
 
+// One blank line between a table's rows is tolerated. That isn't GFM-legal, but this
+// parser runs against text recovered from the *rendered* DOM, where a block element per
+// line can contribute a line break of its own on top of the one already in the message
+// -- and the strict version's only response to that was to silently leave an obvious
+// table sitting there as raw pipes.
+class TableCursor {
+    constructor(lines) {
+        this.lines = lines;
+        this.pos = 0;
+    }
+    done() { return this.pos >= this.lines.length; }
+    peek() { return this.lines[this.pos]; }
+    advance() { return this.lines[this.pos++]; }
+    // Looks at the next line, tolerating exactly one blank line first. Doesn't move the
+    // cursor -- the caller commits to the returned position (via `.pos = result.at + 1`)
+    // only once it has confirmed the line there is actually usable.
+    peekPastOneBlank() {
+        let p = this.pos;
+        if (p < this.lines.length && this.lines[p].trim() === "") p++;
+        return p < this.lines.length ? { line: this.lines[p], at: p } : null;
+    }
+}
+
 function findTables(text) {
     const lines = text.split("\n");
-    const tables = [];
     const lineStart = [0];
     for (let i = 0; i < lines.length; i++) lineStart.push(lineStart[i] + lines[i].length + 1);
 
-    // One blank line between a table's rows is tolerated. That isn't GFM-legal, but this
-    // parser runs against text recovered from the *rendered* DOM, where a block element per
-    // line can contribute a line break of its own on top of the one already in the message
-    // -- and the strict version's only response to that was to silently leave an obvious
-    // table sitting there as raw pipes.
-    const skipOneBlank = (i) => (i < lines.length && lines[i].trim() === "" ? i + 1 : i);
+    const tables = [];
+    const cur = new TableCursor(lines);
 
-    for (let i = 0; i < lines.length - 1; i++) {
-        if (!ROW_RE.test(lines[i])) continue;
-
-        const sepIdx = skipOneBlank(i + 1);
-        if (sepIdx >= lines.length || !SEP_RE.test(lines[sepIdx])) continue;
-
-        const headers = parseRow(lines[i]);
+    while (!cur.done()) {
+        if (!ROW_RE.test(cur.peek())) { cur.advance(); continue; }
+        const headerIdx = cur.pos;
+        const headers = parseRow(cur.advance());
         const expectedCols = headers.length;
-        if (parseRow(lines[sepIdx]).length !== expectedCols) continue;
+
+        const sep = cur.peekPastOneBlank();
+        if (!sep || !SEP_RE.test(sep.line) || parseRow(sep.line).length !== expectedCols) continue;
+        cur.pos = sep.at + 1;
 
         const rows = [];
-        let lastRow = sepIdx;
-        let j = sepIdx + 1;
+        let lastRowIdx = sep.at;
         for (;;) {
-            const k = skipOneBlank(j);
-            if (k >= lines.length || !ROW_RE.test(lines[k])) break;
-            const cells = parseRow(lines[k]);
+            const next = cur.peekPastOneBlank();
+            if (!next || !ROW_RE.test(next.line)) break;
+            const cells = parseRow(next.line);
             while (cells.length < expectedCols) cells.push("");
             if (cells.length > expectedCols) cells.length = expectedCols;
             rows.push(cells);
-            lastRow = k;
-            j = k + 1;
+            lastRowIdx = next.at;
+            cur.pos = next.at + 1;
         }
-        tables.push({ headers, rows, start: lineStart[i], end: lineStart[lastRow] + lines[lastRow].length });
-        i = lastRow;
+        tables.push({ headers, rows, start: lineStart[headerIdx], end: lineStart[lastRowIdx] + lines[lastRowIdx].length });
     }
     return tables;
 }
@@ -834,7 +881,11 @@ async function ensureLibrary(spec) {
     throw new Error(failures.join(" | "));
 }
 
-module.exports = class MarkdownMermaid {
+// Matches BetterDiscord's own composer/textbox markup regardless of which specific
+// element within it fired the mutation.
+const INPUT_AREA_SELECTOR = '[contenteditable="true"], [contenteditable=""], [role="textbox"]';
+
+class MarkdownMermaid {
     constructor(meta) {
         this.meta = meta;
         this.settings = Object.assign({}, CONFIG.defaultSettings, BdApi.Data.load(CONFIG.name, "settings"));
@@ -967,13 +1018,14 @@ module.exports = class MarkdownMermaid {
     }
 
     // Avoid rescanning on every keystroke in the message composer / unrelated UI churn.
+    // Capped at 20 ancestors -- same reasoning as the safety scan interval: this runs on
+    // every mutation, so an unbounded walk up an unexpectedly deep tree would cost more
+    // than just accepting the (vanishingly unlikely) miss past that depth.
     isInputAreaTarget(target) {
-        let cur = target && target.nodeType === 1 ? target : (target && target.parentNode);
-        for (let i = 0; i < 20 && cur && cur.nodeType === 1; i++) {
-            const ce = cur.getAttribute && cur.getAttribute("contenteditable");
-            if (ce === "true" || ce === "") return true;
-            if (cur.getAttribute && cur.getAttribute("role") === "textbox") return true;
-            cur = cur.parentNode;
+        let cur = target && target.nodeType === 1 ? target : (target && target.parentElement);
+        for (let i = 0; i < 20 && cur; i++) {
+            if (cur.matches && cur.matches(INPUT_AREA_SELECTOR)) return true;
+            cur = cur.parentElement;
         }
         return false;
     }
@@ -1405,4 +1457,12 @@ module.exports = class MarkdownMermaid {
 
         return panel;
     }
-};
+}
+
+module.exports = MarkdownMermaid;
+// Isolated unit testing hook for the pure DOM/string helpers above -- inert at runtime
+// (BetterDiscord only ever does `new (require(path))()`, never touches this property),
+// gated behind NODE_ENV so it's a no-op outside `npm test`.
+if (typeof process !== "undefined" && process.env && process.env.NODE_ENV === "test") {
+    module.exports.__testInternals = { buildVisibleTextMap, hideRange, findHeadings, findRules, findTables, parseRow, escHtml };
+}

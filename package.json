@@ -1,0 +1,11 @@
+{
+  "name": "dre",
+  "private": true,
+  "description": "Test harness for DC_Render_Enhanced.plugin.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
+  }
+}
