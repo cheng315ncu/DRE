@@ -1,8 +1,10 @@
 # DRE
 
-**D**iscord **R**endering **E**nhanced — a [BetterDiscord](https://betterdiscord.app/) plugin that adds Mermaid diagrams, LaTeX math, image link previews, and extra Markdown (headings, GFM tables, `<details>` blocks, horizontal rules) that Discord doesn't natively support.
+Built for the AI agent era in Discord. Render Mermaid diagrams, LaTeX, and rich Markdown seamlessly to turn raw agent responses into intuitive visual insights.
 
-It was originally built to make working with the **zeroclaw** bot nicer to read — diagrams, tables, and structured Markdown that the bot posts now render properly instead of showing up as raw text.
+**D**iscord **R**endering **E**nhanced — a [BetterDiscord](https://betterdiscord.app/) plugin that also adds image link previews and Markdown extras (headings, GFM tables, `<details>` blocks, horizontal rules) beyond what Discord natively supports.
+
+It was originally built for the **zeroclaw** bot — diagrams, tables, and structured Markdown it posts now render properly instead of showing up as raw text. As agents like zeroclaw and **openclaw** increasingly live inside Discord full-time as always-on collaborators rather than one-off slash commands, that kind of structured output is becoming the norm rather than the exception — this plugin exists to render it properly for any agent posting that way.
 
 ## Features
 
